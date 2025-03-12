@@ -1,0 +1,13 @@
+eel
+flask
+pyinstaller
+numpy
+pandas
+requests
+openai
+torch
+transformers
+speechrecognition
+pyaudio
+gtts
+pyttsx3
