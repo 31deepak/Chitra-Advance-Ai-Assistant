@@ -8,6 +8,7 @@ openai
 torch
 transformers
 speechrecognition
-pyaudio
+sounddevice
 gtts
 pyttsx3
+ffmpeg-python
