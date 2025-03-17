@@ -1,6 +1,5 @@
 eel
-flask==2.0.1
-gunicorn==20.1.0
+
 pyinstaller
 numpy
 pandas
@@ -11,3 +10,7 @@ sounddevice
 gtts
 pyttsx3
 ffmpeg-python
+Flask==2.2.3
+gunicorn==21.2.0
+requests==2.31.0
+
