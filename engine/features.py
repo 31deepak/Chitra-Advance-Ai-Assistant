@@ -10,7 +10,8 @@ import time
 import webbrowser
 from playsound import playsound
 import eel
-import pyaudio
+import sounddevice as sd
+#import pyaudio
 import pyautogui
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
