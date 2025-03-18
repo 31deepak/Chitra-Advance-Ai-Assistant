@@ -1,5 +1,7 @@
 import os
-from pipes import quote
+#from pipes import quote
+import shlex
+quote = shlex.quote  # Use `shlex.quote()` instead of `pipes.quote()`
 import re
 import sqlite3
 import struct
