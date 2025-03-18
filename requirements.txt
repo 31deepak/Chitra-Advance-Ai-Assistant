@@ -1,5 +1,6 @@
 eel
-
+fastapi
+subprocess-run
 pyinstaller
 numpy
 pandas
