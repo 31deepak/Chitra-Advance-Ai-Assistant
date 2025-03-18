@@ -2,6 +2,7 @@ eel
 fastapi
 subprocess-run
 pyinstaller
+playsound==1.2.2
 numpy
 pandas
 requests
