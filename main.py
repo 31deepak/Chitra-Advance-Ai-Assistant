@@ -40,9 +40,5 @@ async def read_root():
     return {"message": "Hello World"}
 
 if __name__ == "__main__":
-    # Run Eel in a separate thread
-    eel_thread = threading.Thread(target=start_eel, daemon=True)
-    eel_thread.start()
-    
-    # Run FastAPI server
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
