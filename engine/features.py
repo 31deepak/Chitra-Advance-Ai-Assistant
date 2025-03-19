@@ -19,8 +19,12 @@ import pywhatkit as kit
 from hugchat import hugchat
 
 # Ensure DISPLAY variable is set (required for UI-related automation)
-if "DISPLAY" not in os.environ:
-    os.environ["DISPLAY"] = ":0"
+
+# Check for a display before importing pyautogui
+if "DISPLAY" in os.environ or os.name != "posix":
+    import pyautogui
+else:
+    print("Skipping pyautogui: Headless environment detected.")
 
 # Database Connection
 conn = sqlite3.connect("chitar.db", check_same_thread=False)
