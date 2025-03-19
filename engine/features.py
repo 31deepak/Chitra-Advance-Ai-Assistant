@@ -1,223 +1,170 @@
 import os
-#from pipes import quote
 import shlex
-quote = shlex.quote  # Use `shlex.quote()` instead of `pipes.quote()`
 import re
 import sqlite3
 import struct
 import subprocess
 import time
 import webbrowser
-from playsound import playsound
+import pyautogui
 import eel
 import sounddevice as sd
-#import pyaudio
-import pyautogui
+import pyaudio  # Uncommented for hotword detection
+import pvporcupine
+from playsound import playsound
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
-# Playing assiatnt sound function
-import pywhatkit as kit
-import pvporcupine
-
 from engine.helper import extract_yt_term, remove_words
+import pywhatkit as kit
 from hugchat import hugchat
 
+# Database Connection
 conn = sqlite3.connect("chitar.db")
 cursor = conn.cursor()
 
 @eel.expose
 def playAssistantSound():
-    music_dir = "www\\assets\\audio\\start_sound.mp3"
-    playsound(music_dir)
+    music_dir = "www/assets/audio/start_sound.mp3"
+    try:
+        playsound(music_dir)
+    except Exception as e:
+        print(f"Error playing sound: {e}")
 
-    
 def openCommand(query):
-    query = query.replace(ASSISTANT_NAME, "")
-    query = query.replace("open", "")
-    query.lower()
+    query = query.replace(ASSISTANT_NAME, "").replace("open", "").strip().lower()
 
-    app_name = query.strip()
-
-    if app_name != "":
-
+    if query:
         try:
-            cursor.execute(
-                'SELECT path FROM sys_command WHERE name IN (?)', (app_name,))
-            results = cursor.fetchall()
+            cursor.execute('SELECT path FROM sys_command WHERE name = ?', (query,))
+            result = cursor.fetchone()
 
-            if len(results) != 0:
-                speak("Opening "+query)
-                os.startfile(results[0][0])
-
-            elif len(results) == 0: 
-                cursor.execute(
-                'SELECT url FROM web_command WHERE name IN (?)', (app_name,))
-                results = cursor.fetchall()
+            if result:
+                speak(f"Opening {query}")
+                os.startfile(result[0])
+            else:
+                cursor.execute('SELECT url FROM web_command WHERE name = ?', (query,))
+                result = cursor.fetchone()
                 
-                if len(results) != 0:
-                    speak("Opening "+query)
-                    webbrowser.open(results[0][0])
-
+                if result:
+                    speak(f"Opening {query}")
+                    webbrowser.open(result[0])
                 else:
-                    speak("Opening "+query)
+                    speak(f"Trying to open {query}")
                     try:
-                        os.system('start '+query)
-                    except:
-                        speak("not found")
-        except:
-            speak("some thing went wrong")
-
-       
+                        os.system(f'start {query}')
+                    except Exception as e:
+                        speak(f"Could not open {query}. Error: {e}")
+        except Exception as e:
+            speak(f"An error occurred: {e}")
 
 def PlayYoutube(query):
     search_term = extract_yt_term(query)
-    speak("Playing "+search_term+" on YouTube")
+    speak(f"Playing {search_term} on YouTube")
     kit.playonyt(search_term)
 
-
 def hotword():
-    porcupine=None
-    paud=None
-    audio_stream=None
+    porcupine = None
+    audio_stream = None
+    paud = None
     try:
-       
-        # pre trained keywords    
-        porcupine=pvporcupine.create(keywords=["chitra","alexa"]) 
-        paud=pyaudio.PyAudio()
-        audio_stream=paud.open(rate=porcupine.sample_rate,channels=1,format=pyaudio.paInt16,input=True,frames_per_buffer=porcupine.frame_length)
-        
-        # loop for streaming
+        porcupine = pvporcupine.create(keywords=["chitra", "alexa"]) 
+        paud = pyaudio.PyAudio()
+        audio_stream = paud.open(rate=porcupine.sample_rate, channels=1, format=pyaudio.paInt16, input=True, frames_per_buffer=porcupine.frame_length)
+
         while True:
-            keyword=audio_stream.read(porcupine.frame_length)
-            keyword=struct.unpack_from("h"*porcupine.frame_length,keyword)
+            keyword = audio_stream.read(porcupine.frame_length)
+            keyword = struct.unpack_from("h" * porcupine.frame_length, keyword)
 
-            # processing keyword comes from mic 
-            keyword_index=porcupine.process(keyword)
+            keyword_index = porcupine.process(keyword)
+            if keyword_index >= 0:
+                print("Hotword detected")
 
-            # checking first keyword detetcted for not
-            if keyword_index>=0:
-                print("hotword detected")
-
-                # pressing shorcut key win+j
-                import pyautogui as autogui
-                autogui.keyDown("win")
-                autogui.press("j")
+                pyautogui.hotkey("win", "j")
                 time.sleep(2)
-                autogui.keyUp("win")
                 
-    except:
-        if porcupine is not None:
+    except Exception as e:
+        print(f"Error in hotword detection: {e}")
+    finally:
+        if porcupine:
             porcupine.delete()
-        if audio_stream is not None:
+        if audio_stream:
             audio_stream.close()
-        if paud is not None:
+        if paud:
             paud.terminate()
 
-
-
-# find contacts
 def findContact(query):
-    
-    words_to_remove = [ASSISTANT_NAME, 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'wahtsapp', 'video']
-    query = remove_words(query, words_to_remove)
+    words_to_remove = [ASSISTANT_NAME, 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'whatsapp', 'video']
+    query = remove_words(query, words_to_remove).strip().lower()
 
     try:
-        query = query.strip().lower()
-        cursor.execute("SELECT mobile_no FROM contacts WHERE LOWER(name) LIKE ? OR LOWER(name) LIKE ?", ('%' + query + '%', query + '%'))
-        results = cursor.fetchall()
-        print(results[0][0])
-        mobile_number_str = str(results[0][0])
+        cursor.execute("SELECT mobile_no FROM contacts WHERE LOWER(name) LIKE ?", ('%' + query + '%',))
+        result = cursor.fetchone()
+        
+        if result:
+            mobile_number = str(result[0])
+            if not mobile_number.startswith('+91'):
+                mobile_number = '+91' + mobile_number
+            return mobile_number, query
+        else:
+            speak("Contact not found")
+            return None, None
+    except Exception as e:
+        speak(f"Error fetching contact: {e}")
+        return None, None
 
-        if not mobile_number_str.startswith('+91'):
-            mobile_number_str = '+91' + mobile_number_str
-
-        return mobile_number_str, query
-    except:
-        speak('not exist in contacts')
-        return 0, 0
-    
 def whatsApp(mobile_no, message, flag, name):
-    
+    target_tab = {'message': 12, 'call': 7, 'video': 6}.get(flag, 6)
+    speak_msg = f"{flag}ing {name}" if flag else f"Starting video call with {name}"
 
-    if flag == 'message':
-        target_tab = 12
-        chitra_message = "message send successfully to "+name
-
-    elif flag == 'call':
-        target_tab = 7
-        message = ''
-        chitra_message = "calling to "+name
-
-    else:
-        target_tab = 6
-        message = ''
-        chitra_message = "staring video call with "+name
-
-
-    # Encode the message for URL
-    encoded_message = quote(message)
-    print(encoded_message)
-    # Construct the URL
+    encoded_message = shlex.quote(message)
     whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
-
-    # Construct the full command
-    full_command = f'start "" "{whatsapp_url}"'
-
-    # Open WhatsApp with the constructed URL using cmd.exe
-    subprocess.run(full_command, shell=True)
-    time.sleep(5)
-    subprocess.run(full_command, shell=True)
+    subprocess.Popen(f'start "" "{whatsapp_url}"', shell=True)
     
+    time.sleep(5)
+    subprocess.Popen(f'start "" "{whatsapp_url}"', shell=True)
+
     pyautogui.hotkey('ctrl', 'f')
+    for _ in range(1, target_tab):
+        pyautogui.press('tab')
+    pyautogui.press('enter')
 
-    for i in range(1, target_tab):
-        pyautogui.hotkey('tab')
+    speak(speak_msg)
 
-    pyautogui.hotkey('enter')
-    speak(chitra_message)
-
-# chat bot 
 def chatBot(query):
-    user_input = query.lower()
-    chatbot = hugchat.ChatBot(cookie_path="engine/cookies.json")
-    id = chatbot.new_conversation()
-    chatbot.change_conversation(id)
-    response =  chatbot.chat(user_input)
-    print(response)
-    speak(response)
-    return response
+    try:
+        chatbot = hugchat.ChatBot(cookie_path="engine/cookies.json")
+        conversation_id = chatbot.new_conversation()
+        chatbot.change_conversation(conversation_id)
+        response = chatbot.chat(query.lower())
+        print(response)
+        speak(response)
+        return response
+    except Exception as e:
+        print(f"Chatbot error: {e}")
+        return "Sorry, I couldn't process that request."
 
-# android automation
-
-def makeCall(name, mobileNo):
-    mobileNo =mobileNo.replace(" ", "")
-    speak("Calling "+name)
-    command = f'adb shell am start -a android.intent.action.DIAL -d tel:{mobileNo}'
-
+def makeCall(name, mobile_no):
+    mobile_no = mobile_no.replace(" ", "")
+    speak(f"Calling {name}")
+    command = f'adb shell am start -a android.intent.action.DIAL -d tel:{mobile_no}'
     os.system(command)
 
-
-# to send message
-def sendMessage(message, mobileNo, name):
+def sendMessage(message, mobile_no, name):
     from engine.helper import replace_spaces_with_percent_s, goback, keyEvent, tapEvents, adbInput
+
     message = replace_spaces_with_percent_s(message)
-    mobileNo = replace_spaces_with_percent_s(mobileNo)
-    speak("sending message")
+    mobile_no = replace_spaces_with_percent_s(mobile_no)
+
+    speak("Sending message")
     goback(4)
     time.sleep(1)
     keyEvent(3)
-    # open sms app
-    tapEvents(136, 2220)
-    #start chat
-    tapEvents(819, 2192)
-    # search mobile no
-    adbInput(mobileNo)
-    #tap on name
-    tapEvents(601, 574)
-    # tap on input
-    tapEvents(390, 2270)
-    #message
+    tapEvents(136, 2220)  # Open SMS app
+    tapEvents(819, 2192)  # Start chat
+    adbInput(mobile_no)
+    tapEvents(601, 574)  # Tap on contact
+    tapEvents(390, 2270)  # Tap on input field
     adbInput(message)
-    #send
-    tapEvents(957, 1397)
-    speak("message send successfully to "+name)
+    tapEvents(957, 1397)  # Send message
+
+    speak(f"Message sent successfully to {name}")
