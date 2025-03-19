@@ -7,6 +7,7 @@ playsound==1.2.2
 pyautogui
 mouseinfo
 pyvirtualdisplay
+Xlib
 sounddevice
 numpy
 pandas
