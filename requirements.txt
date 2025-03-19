@@ -5,6 +5,8 @@ subprocess-run
 pyinstaller
 playsound==1.2.2
 pyautogui
+mouseinfo
+pyvirtualdisplay
 sounddevice
 numpy
 pandas
