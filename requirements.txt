@@ -4,6 +4,7 @@ fastapi
 subprocess-run
 pyinstaller
 playsound==1.2.2
+pyautogui
 sounddevice
 numpy
 pandas
