@@ -17,6 +17,8 @@ from engine.config import ASSISTANT_NAME
 from engine.helper import extract_yt_term, remove_words
 import pywhatkit as kit
 from hugchat import hugchat
+import os
+os.environ["DISPLAY"] = ":99.0"
 
 # Database Connection
 conn = sqlite3.connect("chitar.db")
