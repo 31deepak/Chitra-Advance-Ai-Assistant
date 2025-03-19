@@ -7,6 +7,10 @@ from engine.features import *
 from engine.command import *
 from engine.auth import recoganize
 import uvicorn
+from pyvirtualdisplay import Display
+display = Display(visible=False, size=(1024, 768))
+display.start()
+
 
 app = FastAPI()
 
