@@ -4,8 +4,7 @@ fastapi
 subprocess-run
 pyinstaller
 playsound==1.2.2
-pyautogui
-mouseinfo
+
 pyvirtualdisplay
 Xlib
 sounddevice
@@ -18,7 +17,8 @@ sounddevice
 gtts
 pyttsx3
 ffmpeg-python
-Flask==2.2.3
+Flask>=2.2.0
+Werkzeug>=2.2.0
 gunicorn==21.2.0
 requests==2.31.0
 uvicorn
