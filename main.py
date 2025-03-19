@@ -3,7 +3,7 @@ import eel
 import subprocess
 import threading
 from fastapi import FastAPI
-from engine.features import 
+from engine.features import * 
 from engine.command import *
 from engine.auth import recoganize
 import uvicorn
